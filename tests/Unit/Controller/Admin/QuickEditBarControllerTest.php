@@ -16,24 +16,23 @@ use Sylius\Component\Core\Model\ProductInterface;
 use Sylius\Component\Core\Repository\ProductRepositoryInterface;
 use Sylius\Component\Taxonomy\Repository\TaxonRepositoryInterface;
 use Sylius\Component\User\Repository\UserRepositoryInterface;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
+use Twig\Environment;
 
 final class QuickEditBarControllerTest extends TestCase
 {
-    public function testItReturnsOnlyTheAdministrationLinkWithoutResource(): void
+    public function testItRendersOnlyTheBarWithoutResource(): void
     {
         self::assertSame(
             [
-                'label' => 's_krull_sylius_quick_edit_bar.ui.quick_edit_bar',
+                'template' => '@SKrullSyliusQuickEditBarPlugin/admin/quick_edit_bar.html.twig',
                 'position' => 'bottom',
-                'toggle' => ['hide' => 's_krull_sylius_quick_edit_bar.ui.hide', 'show' => 's_krull_sylius_quick_edit_bar.ui.show'],
-                'administration' => ['label' => 'sylius.ui.administration', 'url' => '/sylius_admin_dashboard'],
                 'channel' => null,
                 'impersonation' => null,
                 'resource' => null,
@@ -124,18 +123,21 @@ final class QuickEditBarControllerTest extends TestCase
         $authorizationChecker = $this->createStub(AuthorizationCheckerInterface::class);
         $authorizationChecker->method('isGranted')->willReturn(false);
 
+        // Exposes the template and its context instead of rendering it
+        $twig = $this->createStub(Environment::class);
+        $twig->method('render')->willReturnCallback(static fn (string $template, array $context): string => (string) json_encode(['template' => $template] + $context));
+
         return new QuickEditBarController(
             new ResourceDescriber($productRepository, $this->createStub(TaxonRepositoryInterface::class), $urlGenerator, $translator),
             new ChannelDescriber($channelRepository, $urlGenerator, $translator),
             new ImpersonationDescriber($authorizationChecker, new RequestStack(), $this->createStub(UserRepositoryInterface::class), $urlGenerator, $translator, 'shop'),
-            $urlGenerator,
-            $translator,
+            $twig,
             $position,
         );
     }
 
     /** @return array<array-key, mixed> */
-    private function decode(JsonResponse $response): array
+    private function decode(Response $response): array
     {
         $content = json_decode((string) $response->getContent(), true);
         self::assertIsArray($content);

@@ -10,18 +10,17 @@ use SKrull\SyliusQuickEditBarPlugin\Exception\UnsupportedResourceException;
 use SKrull\SyliusQuickEditBarPlugin\QuickEditBar\ChannelDescriber;
 use SKrull\SyliusQuickEditBarPlugin\QuickEditBar\ImpersonationDescriber;
 use SKrull\SyliusQuickEditBarPlugin\QuickEditBar\ResourceDescriber;
-use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\AsController;
 use Symfony\Component\HttpKernel\Attribute\MapQueryParameter;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Twig\Environment;
 
 /**
- * Provides the content of the storefront quick edit bar.
+ * Renders the storefront quick edit bar, which the shop page inserts into its shadow root.
  *
  * The route must be imported with the admin prefix so that it is protected by the admin firewall.
  *
@@ -37,8 +36,7 @@ final readonly class QuickEditBarController
         private ResourceDescriber $resourceDescriber,
         private ChannelDescriber $channelDescriber,
         private ImpersonationDescriber $impersonationDescriber,
-        private UrlGeneratorInterface $urlGenerator,
-        private TranslatorInterface $translator,
+        private Environment $twig,
         private string $position = Configuration::POSITION_BOTTOM,
     ) {
     }
@@ -51,22 +49,13 @@ final readonly class QuickEditBarController
         ?string $id = null,
         #[MapQueryParameter]
         ?string $channel = null,
-    ): JsonResponse {
-        $response = new JsonResponse([
-            'label' => $this->translator->trans('s_krull_sylius_quick_edit_bar.ui.quick_edit_bar'),
+    ): Response {
+        $response = new Response($this->twig->render('@SKrullSyliusQuickEditBarPlugin/admin/quick_edit_bar.html.twig', [
             'position' => $this->position,
-            'toggle' => [
-                'hide' => $this->translator->trans('s_krull_sylius_quick_edit_bar.ui.hide'),
-                'show' => $this->translator->trans('s_krull_sylius_quick_edit_bar.ui.show'),
-            ],
-            'administration' => [
-                'label' => $this->translator->trans('sylius.ui.administration'),
-                'url' => $this->urlGenerator->generate('sylius_admin_dashboard'),
-            ],
             'channel' => null === $channel || '' === $channel ? null : $this->channelDescriber->describe($channel),
             'impersonation' => $this->impersonationDescriber->describe(),
             'resource' => null === $resource ? null : $this->describeResource($resource, $id),
-        ]);
+        ]));
         $response->setPrivate();
         $response->headers->addCacheControlDirective('no-store');
 

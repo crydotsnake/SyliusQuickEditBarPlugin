@@ -19,6 +19,7 @@ use Sylius\Component\Locale\Model\LocaleInterface;
 use Sylius\Resource\Factory\FactoryInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
@@ -41,26 +42,21 @@ final class QuickEditBarTest extends WebTestCase
         (new ORMPurger($this->entityManager))->purge();
     }
 
-    public function testItReturnsTheAdministrationLinkWithoutResource(): void
+    public function testItRendersTheAdministrationLinkWithoutResource(): void
     {
         $this->client->loginUser($this->createAdminUser(), 'admin');
 
-        $this->client->request('GET', self::ENDPOINT);
+        $crawler = $this->client->request('GET', self::ENDPOINT);
 
         self::assertResponseIsSuccessful();
-        self::assertResponseHeaderSame('Content-Type', 'application/json');
-        self::assertSame(
-            [
-                'label' => 'Quick edit bar',
-                'position' => 'bottom',
-                'toggle' => ['hide' => 'Hide quick edit bar', 'show' => 'Show quick edit bar'],
-                'administration' => ['label' => 'Administration', 'url' => '/admin/'],
-                'channel' => null,
-                'impersonation' => null,
-                'resource' => null,
-            ],
-            $this->getJsonResponse(),
-        );
+        self::assertResponseHeaderSame('Content-Type', 'text/html; charset=UTF-8');
+        self::assertSame('bottom', $crawler->filter('[data-position]')->attr('data-position'));
+        self::assertSame('Quick edit bar', $crawler->filter('nav')->attr('aria-label'));
+        self::assertSame(['administration' => ['Administration', '/admin/']], $this->getLinks($crawler));
+        self::assertSame('Hide quick edit bar', $crawler->filter('[data-test-quick-edit-bar-toggle="hide"]')->attr('aria-label'));
+        self::assertSame('Show quick edit bar', $crawler->filter('[data-test-quick-edit-bar-toggle="show"]')->attr('aria-label'));
+        self::assertCount(0, $crawler->filter('.resource'));
+        self::assertCount(3, $crawler->filter('svg'), 'Every link and toggle has an icon');
     }
 
     public function testItReturnsTheProductLinksForAnAdministrator(): void
@@ -70,20 +66,18 @@ final class QuickEditBarTest extends WebTestCase
         self::assertIsInt($productId);
         $this->client->loginUser($this->createAdminUser(), 'admin');
 
-        $this->client->request('GET', self::ENDPOINT, ['resource' => 'product', 'id' => $productId]);
+        $crawler = $this->client->request('GET', self::ENDPOINT, ['resource' => 'product', 'id' => $productId]);
 
         self::assertResponseIsSuccessful();
+        self::assertSame('Product:', $crawler->filter('.resource-type')->text());
+        self::assertSame('Quick edit mug', $crawler->filter('.resource-name')->text());
         self::assertSame(
             [
-                'key' => 'product',
-                'type' => 'Product',
-                'name' => 'Quick edit mug',
-                'links' => [
-                    ['type' => 'link', 'action' => 'edit', 'label' => 'Edit', 'url' => sprintf('/admin/products/%d/edit', $productId)],
-                    ['type' => 'link', 'action' => 'show', 'label' => 'Show', 'url' => sprintf('/admin/products/%d', $productId)],
-                ],
+                'administration' => ['Administration', '/admin/'],
+                'action-edit' => ['Edit', sprintf('/admin/products/%d/edit', $productId)],
+                'action-show' => ['Show', sprintf('/admin/products/%d', $productId)],
             ],
-            $this->getJsonResponse()['resource'] ?? null,
+            $this->getLinks($crawler),
         );
     }
 
@@ -95,14 +89,14 @@ final class QuickEditBarTest extends WebTestCase
         $this->entityManager->flush();
         $this->client->loginUser($this->createAdminUser(), 'admin');
 
-        $this->client->request('GET', self::ENDPOINT, ['resource' => 'product', 'id' => $product->getId()]);
+        $crawler = $this->client->request('GET', self::ENDPOINT, ['resource' => 'product', 'id' => $product->getId()]);
 
         self::assertResponseIsSuccessful();
-        $resource = $this->getJsonResponse()['resource'] ?? null;
-        self::assertIsArray($resource);
-        $links = $resource['links'] ?? null;
-        self::assertIsArray($links);
-        self::assertSame(['edit', 'show', 'variants'], array_column($links, 'action'));
+        $group = $crawler->filter('[data-test-quick-edit-bar-link="action-variants"]');
+        self::assertSame('Variants (2)', $group->attr('aria-label'));
+
+        $menu = $crawler->filter('[data-test-quick-edit-bar-menu="variants"]');
+        self::assertSame($group->attr('popovertarget'), $menu->attr('id'));
 
         $variantIds = [];
         foreach ($product->getVariants() as $variant) {
@@ -110,16 +104,11 @@ final class QuickEditBarTest extends WebTestCase
         }
         self::assertSame(
             [
-                'type' => 'group',
-                'action' => 'variants',
-                'label' => 'Variants (2)',
-                'links' => [
-                    ['type' => 'link', 'action' => 'edit', 'label' => 'Small mug', 'url' => $this->generateUrl('sylius_admin_product_variant_update', ['productId' => $product->getId(), 'id' => $variantIds[0]])],
-                    ['type' => 'link', 'action' => 'edit', 'label' => 'QUICK_EDIT_MUG_LARGE', 'url' => $this->generateUrl('sylius_admin_product_variant_update', ['productId' => $product->getId(), 'id' => $variantIds[1]])],
-                    ['type' => 'link', 'action' => 'index', 'label' => 'List variants', 'url' => $this->generateUrl('sylius_admin_product_variant_index', ['productId' => $product->getId()])],
-                ],
+                ['Small mug', $this->generateUrl('sylius_admin_product_variant_update', ['productId' => $product->getId(), 'id' => $variantIds[0]])],
+                ['QUICK_EDIT_MUG_LARGE', $this->generateUrl('sylius_admin_product_variant_update', ['productId' => $product->getId(), 'id' => $variantIds[1]])],
+                ['List variants', $this->generateUrl('sylius_admin_product_variant_index', ['productId' => $product->getId()])],
             ],
-            $links[2],
+            $menu->filter('a')->each(static fn (Crawler $link): array => [$link->text(), $link->attr('href')]),
         );
     }
 
@@ -130,20 +119,18 @@ final class QuickEditBarTest extends WebTestCase
         self::assertIsInt($taxonId);
         $this->client->loginUser($this->createAdminUser(), 'admin');
 
-        $this->client->request('GET', self::ENDPOINT, ['resource' => 'taxon', 'id' => $taxonId]);
+        $crawler = $this->client->request('GET', self::ENDPOINT, ['resource' => 'taxon', 'id' => $taxonId]);
 
         self::assertResponseIsSuccessful();
+        self::assertSame('Taxon:', $crawler->filter('.resource-type')->text());
+        self::assertSame('T-Shirts', $crawler->filter('.resource-name')->text());
         self::assertSame(
             [
-                'key' => 'taxon',
-                'type' => 'Taxon',
-                'name' => 'T-Shirts',
-                'links' => [
-                    ['type' => 'link', 'action' => 'edit', 'label' => 'Edit', 'url' => $this->generateUrl('sylius_admin_taxon_update', ['id' => $taxonId])],
-                    ['type' => 'link', 'action' => 'products', 'label' => 'Products', 'url' => $this->generateUrl('sylius_admin_product_taxon_index', ['taxonId' => $taxonId])],
-                ],
+                'administration' => ['Administration', '/admin/'],
+                'action-edit' => ['Edit', $this->generateUrl('sylius_admin_taxon_update', ['id' => $taxonId])],
+                'action-products' => ['Products', $this->generateUrl('sylius_admin_product_taxon_index', ['taxonId' => $taxonId])],
             ],
-            $this->getJsonResponse()['resource'] ?? null,
+            $this->getLinks($crawler),
         );
     }
 
@@ -152,23 +139,24 @@ final class QuickEditBarTest extends WebTestCase
         $channel = $this->createChannel();
         $this->client->loginUser($this->createAdminUser(), 'admin');
 
-        $this->client->request('GET', self::ENDPOINT, ['channel' => 'QUICK_EDIT_WEB']);
+        $crawler = $this->client->request('GET', self::ENDPOINT, ['channel' => 'QUICK_EDIT_WEB']);
 
         self::assertResponseIsSuccessful();
         self::assertSame(
-            ['label' => 'Channel', 'name' => 'Quick edit web store', 'url' => $this->generateUrl('sylius_admin_channel_update', ['id' => $channel->getId()])],
-            $this->getJsonResponse()['channel'] ?? null,
+            ['Quick edit web store', $this->generateUrl('sylius_admin_channel_update', ['id' => $channel->getId()])],
+            $this->getLinks($crawler)['channel'] ?? null,
         );
+        self::assertSame('Channel: Quick edit web store', $crawler->filter('[data-test-quick-edit-bar-link="channel"]')->attr('aria-label'));
     }
 
     public function testItIgnoresAnUnknownChannel(): void
     {
         $this->client->loginUser($this->createAdminUser(), 'admin');
 
-        $this->client->request('GET', self::ENDPOINT, ['channel' => 'UNKNOWN']);
+        $crawler = $this->client->request('GET', self::ENDPOINT, ['channel' => 'UNKNOWN']);
 
         self::assertResponseIsSuccessful();
-        self::assertNull($this->getJsonResponse()['channel'] ?? null);
+        self::assertArrayNotHasKey('channel', $this->getLinks($crawler));
     }
 
     public function testItReportsTheImpersonatedCustomer(): void
@@ -179,12 +167,12 @@ final class QuickEditBarTest extends WebTestCase
 
         // The impersonate button on the customer page of the admin
         $this->client->request('GET', $this->generateUrl('sylius_admin_impersonate_user', ['username' => 'customer@example.com']));
-        $this->client->request('GET', self::ENDPOINT);
+        $crawler = $this->client->request('GET', self::ENDPOINT);
 
         self::assertResponseIsSuccessful();
         self::assertSame(
-            ['label' => 'Impersonating customer@example.com', 'url' => $this->generateUrl('sylius_admin_customer_show', ['id' => $customer->getId()])],
-            $this->getJsonResponse()['impersonation'] ?? null,
+            ['Impersonating customer@example.com', $this->generateUrl('sylius_admin_customer_show', ['id' => $customer->getId()])],
+            $this->getLinks($crawler)['impersonation'] ?? null,
         );
     }
 
@@ -193,10 +181,10 @@ final class QuickEditBarTest extends WebTestCase
         $this->client->loginUser($this->createShopUser(), 'shop');
         $this->client->loginUser($this->createAdminUser(), 'admin');
 
-        $this->client->request('GET', self::ENDPOINT);
+        $crawler = $this->client->request('GET', self::ENDPOINT);
 
         self::assertResponseIsSuccessful();
-        self::assertNull($this->getJsonResponse()['impersonation'] ?? null);
+        self::assertArrayNotHasKey('impersonation', $this->getLinks($crawler));
     }
 
     public function testItReturnsBadRequestWithoutId(): void
@@ -282,13 +270,16 @@ final class QuickEditBarTest extends WebTestCase
         return $router->generate($route, $parameters);
     }
 
-    /** @return array<array-key, mixed> */
-    private function getJsonResponse(): array
+    /** @return array<string, array{string, ?string}> label and URL of each link in the bar, by its test name */
+    private function getLinks(Crawler $crawler): array
     {
-        $content = json_decode((string) $this->client->getResponse()->getContent(), true);
-        self::assertIsArray($content);
+        $links = [];
+        foreach ($crawler->filter('a[data-test-quick-edit-bar-link]') as $link) {
+            $link = new Crawler($link);
+            $links[(string) $link->attr('data-test-quick-edit-bar-link')] = [$link->text(), $link->attr('href')];
+        }
 
-        return $content;
+        return $links;
     }
 
     private function createProduct(): ProductInterface

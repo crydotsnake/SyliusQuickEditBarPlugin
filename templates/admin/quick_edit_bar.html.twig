@@ -1,0 +1,84 @@
+{# Inserted into a shadow root on the shop page by the quick edit bar controller, the styles live in the controller #}
+{% set icons = {
+    administration: 'tabler:layout-dashboard',
+    channel: 'tabler:building-store',
+    impersonation: 'tabler:user',
+    resource: 'tabler:box',
+    taxon: 'tabler:category',
+    edit: 'tabler:pencil',
+    show: 'tabler:eye',
+    variants: 'tabler:list',
+    index: 'tabler:list',
+    products: 'tabler:box',
+    link: 'tabler:external-link',
+} %}
+
+{% macro link(link, icon, class_name, title = null) %}
+    {% set title = title ?? link.label %}
+    {# The label is hidden on narrow screens, the icon and the accessible name stay #}
+    <a href="{{ link.url }}" target="_blank" class="{{ class_name }}" title="{{ title }}" aria-label="{{ title }}" data-test-quick-edit-bar-link="{{ class_name }}">
+        {{ ux_icon(icon) }}
+        <span class="label">{{ link.label }}</span>
+    </a>
+{% endmacro %}
+
+<div data-position="{{ position }}">
+    <nav class="bar" aria-label="{{ 's_krull_sylius_quick_edit_bar.ui.quick_edit_bar'|trans }}">
+        {{ _self.link({label: 'sylius.ui.administration'|trans, url: path('sylius_admin_dashboard')}, icons.administration, 'administration') }}
+
+        {% if channel is not null %}
+            {# Only the name is shown, the type stays in the tooltip and the accessible name #}
+            {{ _self.link({label: channel.name, url: channel.url}, icons.channel, 'channel', channel.label ~ ': ' ~ channel.name) }}
+        {% endif %}
+
+        {% if impersonation is not null %}
+            {{ _self.link(impersonation, icons.impersonation, 'impersonation') }}
+        {% endif %}
+
+        {% if resource is not null %}
+            <span class="separator"></span>
+            <span class="resource">
+                {{ ux_icon(icons[resource.key] ?? icons.resource) }}
+                <span class="resource-type">{{ resource.type }}:</span>
+                <span class="resource-name" title="{{ resource.name }}">{{ resource.name }}</span>
+            </span>
+
+            {% for item in resource.links %}
+                {% if item.type == 'group' %}
+                    {# Rendered as a popover, so the dropdown is not clipped by the horizontally scrollable bar #}
+                    {% set menu_id = 'menu-' ~ item.action %}
+                    <span class="group-wrapper">
+                        <button type="button" class="group action-{{ item.action }}" title="{{ item.label }}" aria-label="{{ item.label }}" aria-expanded="false" popovertarget="{{ menu_id }}" data-test-quick-edit-bar-link="action-{{ item.action }}">
+                            {{ ux_icon(icons[item.action] ?? icons.link) }}
+                            <span class="label">{{ item.label }}</span>
+                            {{ ux_icon('tabler:chevron-down', {class: 'chevron'}) }}
+                        </button>
+                        <div id="{{ menu_id }}" class="menu" popover data-test-quick-edit-bar-menu="{{ item.action }}">
+                            {% for link in item.links %}
+                                {% if link.action == 'index' %}
+                                    <div class="menu-separator"></div>
+                                {% endif %}
+                                <a href="{{ link.url }}" target="_blank" class="menu-link" title="{{ link.label }}">
+                                    {{ ux_icon(icons[link.action] ?? icons.link) }}
+                                    <span class="menu-label">{{ link.label }}</span>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    </span>
+                {% else %}
+                    {{ _self.link(item, icons[item.action] ?? icons.link, 'action-' ~ item.action) }}
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+
+        {% set hide_label = 's_krull_sylius_quick_edit_bar.ui.hide'|trans %}
+        <button type="button" class="toggle toggle-hide" title="{{ hide_label }}" aria-label="{{ hide_label }}" aria-expanded="true" data-test-quick-edit-bar-toggle="hide">
+            {{ ux_icon('tabler:x') }}
+        </button>
+    </nav>
+
+    {% set show_label = 's_krull_sylius_quick_edit_bar.ui.show'|trans %}
+    <button type="button" class="toggle toggle-show" title="{{ show_label }}" aria-label="{{ show_label }}" aria-expanded="false" data-test-quick-edit-bar-toggle="show">
+        {{ ux_icon(icons.administration) }}
+    </button>
+</div>
