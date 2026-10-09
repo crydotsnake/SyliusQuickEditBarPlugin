@@ -4,6 +4,16 @@ Adds a floating bar to the storefront, similar to the Symfony web debug toolbar.
 
 The bar floats above the page at the bottom, so it never covers the shop header with its navigation and cart. The button on its right collapses it to a small button in the corner. This is remembered per browser until the bar is shown again.
 
+## Demo
+
+### Edit a product and list its variants
+
+![Sylius QuickEditBarPlugin Product Demo](docs/sylius_quick_edit_bar_plugin_product_demo.png)
+
+### Edit a category and list its products
+
+![Sylius QuickEditBarPlugin Taxon Demo](docs/sylius_quick_edit_bar_plugin_taxon_demo.png)
+
 ## Requirements
 
 - PHP 8.3 or higher
@@ -71,7 +81,7 @@ Enable it in `assets/shop/controllers.json`:
 }
 ```
 
-Then rebuild the assets: `yarn install && yarn build`.
+Then rebuild the assets: `yarn install && yarn build`. After updating the plugin, run `yarn install --force` first, because Yarn copies the package instead of linking it.
 
 ## Supported pages
 
