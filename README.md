@@ -4,6 +4,8 @@ Adds a floating bar to the storefront, similar to the Symfony web debug toolbar.
 
 The bar floats above the page at the bottom, so it never covers the shop header with its navigation and cart. The button on its right collapses it to a small button in the corner. This is remembered per browser until the bar is shown again.
 
+As an alternative you can also move the bar to specific snap points. Rather with dragging, and move, or with clicking the icon.
+
 ## Demo
 
 ### Edit a product and list its variants
@@ -114,25 +116,12 @@ All options with their defaults, e.g. in `config/packages/s_krull_sylius_quick_e
 
 ```yaml
 s_krull_sylius_quick_edit_bar:
-    # Edge of the viewport the bar floats at: bottom or top
+    # Edge of the viewport the bar floats at, until it is moved to another corner: bottom or top
     position: bottom
 
     product:
         # Number of variants listed in the variants dropdown (at least 1), the last entry always links to the full list
         max_variants: 20
-```
-
-Like any bundle configuration, the value can differ per environment or come from an environment variable:
-
-```yaml
-s_krull_sylius_quick_edit_bar:
-    product:
-        max_variants: '%env(int:QUICK_EDIT_BAR_MAX_VARIANTS)%'
-
-when@dev:
-    s_krull_sylius_quick_edit_bar:
-        product:
-            max_variants: 100
 ```
 
 To check the configuration that is actually used:
