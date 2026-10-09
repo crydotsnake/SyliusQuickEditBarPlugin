@@ -99,7 +99,7 @@
             "vendor/bin/console sylius:fixtures:load -n"
         ],
         "frontend-clear": [
-            "cd vendor/sylius/test-application && yarn install && yarn build",
+            "cd vendor/sylius/test-application && yarn install --force && yarn build",
             "vendor/bin/console assets:install"
         ],
         "test": "phpunit --testsuite unit",
