@@ -68,6 +68,9 @@ final readonly class ImpersonationDescriber
             return null;
         }
 
+        // The session is server side and Symfony unserializes this token the same way. Allowed classes cannot
+        // be listed, since the token and user classes depend on the application
+        /** @noinspection UnserializeExploitsInspection */
         $token = unserialize($serializedToken);
         $user = $token instanceof TokenInterface ? $token->getUser() : null;
         if (!$user instanceof ShopUserInterface || null === $user->getId()) {
