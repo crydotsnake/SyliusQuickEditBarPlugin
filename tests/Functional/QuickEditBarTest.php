@@ -55,8 +55,9 @@ final class QuickEditBarTest extends WebTestCase
         self::assertSame(['administration' => ['Administration', '/admin/']], $this->getLinks($crawler));
         self::assertSame('Hide quick edit bar', $crawler->filter('[data-test-quick-edit-bar-toggle="hide"]')->attr('aria-label'));
         self::assertSame('Show quick edit bar', $crawler->filter('[data-test-quick-edit-bar-toggle="show"]')->attr('aria-label'));
+        self::assertSame('Move quick edit bar', $crawler->filter('[data-test-quick-edit-bar-handle]')->attr('aria-label'));
         self::assertCount(0, $crawler->filter('.resource'));
-        self::assertCount(3, $crawler->filter('svg'), 'Every link and toggle has an icon');
+        self::assertCount(4, $crawler->filter('svg'), 'Every link, toggle and the handle have an icon');
     }
 
     public function testItReturnsTheProductLinksForAnAdministrator(): void

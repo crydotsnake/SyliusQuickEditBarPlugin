@@ -3,4 +3,6 @@ s_krull_sylius_quick_edit_bar:
         quick_edit_bar: Schnellbearbeitungsleiste
         hide: Schnellbearbeitungsleiste ausblenden
         show: Schnellbearbeitungsleiste einblenden
+        move: Schnellbearbeitungsleiste verschieben
+        move_hint: "Schnellbearbeitungsleiste verschieben: in eine Ecke ziehen oder anklicken"
         impersonating: Angemeldet als %name%

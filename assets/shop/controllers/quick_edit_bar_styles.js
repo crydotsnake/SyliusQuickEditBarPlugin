@@ -4,10 +4,6 @@ const BAR_HEIGHT = 40;
 const FONT = '13px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
 
 export const styles = `
-    :host {
-        all: initial;
-    }
-
     /* Collapsed, only the button to show the bar again is visible */
     :host([data-collapsed]) .bar,
     :host(:not([data-collapsed])) .toggle-show {
@@ -59,6 +55,8 @@ export const styles = `
     .group:hover,
     .group:focus-visible,
     .group[aria-expanded="true"],
+    .handle:hover,
+    .handle:focus-visible,
     .toggle-hide:hover,
     .toggle-hide:focus-visible {
         background: rgba(255, 255, 255, .12);
@@ -71,9 +69,31 @@ export const styles = `
         outline-offset: 1px;
     }
 
+    /* Pointer events must reach the handles on touch devices instead of scrolling the page */
+    .handle,
+    .toggle-show {
+        touch-action: none;
+    }
+
+    .handle {
+        padding: 0 4px;
+        cursor: grab;
+    }
+
+    :host([data-dragging]),
+    :host([data-dragging]) * {
+        cursor: grabbing;
+        user-select: none;
+    }
+
     .toggle-hide {
         margin-left: auto;
         padding: 0 8px;
+    }
+
+    .handle,
+    .toggle-hide,
+    .channel {
         color: #c3c4c7;
     }
 
@@ -90,10 +110,6 @@ export const styles = `
 
     .toggle-show:hover {
         background: #2c3338;
-    }
-
-    .channel {
-        color: #c3c4c7;
     }
 
     /* Stands out, so nobody forgets they are acting as a customer */

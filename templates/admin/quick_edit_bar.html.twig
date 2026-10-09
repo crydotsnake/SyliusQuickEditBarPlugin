@@ -24,6 +24,11 @@
 
 <div data-position="{{ position }}">
     <nav class="bar" aria-label="{{ 's_krull_sylius_quick_edit_bar.ui.quick_edit_bar'|trans }}">
+        {# Dragged to one of the corners of the viewport, a click moves it to the next one #}
+        <button type="button" class="toggle handle" title="{{ 's_krull_sylius_quick_edit_bar.ui.move_hint'|trans }}" aria-label="{{ 's_krull_sylius_quick_edit_bar.ui.move'|trans }}" data-test-quick-edit-bar-handle>
+            {{ ux_icon('tabler:grip-vertical') }}
+        </button>
+
         {{ _self.link({label: 'sylius.ui.administration'|trans, url: path('sylius_admin_dashboard')}, icons.administration, 'administration') }}
 
         {% if channel is not null %}

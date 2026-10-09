@@ -22,7 +22,7 @@ final class Configuration implements ConfigurationInterface
         $treeBuilder->getRootNode()
             ->children()
                 ->enumNode('position')
-                    ->info('Edge of the viewport the floating bar is shown at. Bottom keeps the shop header with its navigation and cart free.')
+                    ->info('Edge of the viewport the floating bar is shown at until it is moved to another corner. Bottom keeps the shop header with its navigation and cart free.')
                     ->values([self::POSITION_BOTTOM, self::POSITION_TOP])
                     ->defaultValue(self::POSITION_BOTTOM)
                 ->end()

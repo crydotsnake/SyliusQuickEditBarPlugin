@@ -3,4 +3,6 @@ s_krull_sylius_quick_edit_bar:
         quick_edit_bar: Quick edit bar
         hide: Hide quick edit bar
         show: Show quick edit bar
+        move: Move quick edit bar
+        move_hint: "Move quick edit bar: drag it to a corner or click it"
         impersonating: Impersonating %name%
