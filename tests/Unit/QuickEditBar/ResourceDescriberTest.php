@@ -55,7 +55,17 @@ final class ResourceDescriberTest extends TestCase
 
         self::assertSame('sylius.ui.variants (30)', $links[2]['label'] ?? null);
         self::assertIsArray($links[2]['links'] ?? null);
-        self::assertCount(ResourceDescriber::MAX_VARIANTS + 1, $links[2]['links']);
+        // 20 variants by default, followed by the link to the full list
+        self::assertCount(21, $links[2]['links']);
+    }
+
+    public function testItLimitsTheNumberOfListedVariantsToTheConfiguredValue(): void
+    {
+        $links = $this->createDescriber(product: $this->createProduct(isSimple: false, variantCount: 30), maxProductVariants: 5)->describe('product', '13')['links'];
+
+        self::assertSame('sylius.ui.variants (30)', $links[2]['label'] ?? null);
+        self::assertIsArray($links[2]['links'] ?? null);
+        self::assertCount(6, $links[2]['links']);
     }
 
     public function testItDoesNotListVariantsOfAConfigurableProductWithoutVariants(): void
@@ -108,7 +118,7 @@ final class ResourceDescriberTest extends TestCase
         $this->createDescriber()->describe('product', '999');
     }
 
-    private function createDescriber(?ProductInterface $product = null, ?TaxonInterface $taxon = null): ResourceDescriber
+    private function createDescriber(?ProductInterface $product = null, ?TaxonInterface $taxon = null, ?int $maxProductVariants = null): ResourceDescriber
     {
         $productRepository = $this->createStub(ProductRepositoryInterface::class);
         $productRepository->method('find')->willReturnCallback(static fn (mixed $id): ?ProductInterface => '13' === $id ? $product : null);
@@ -124,7 +134,10 @@ final class ResourceDescriberTest extends TestCase
         $translator = $this->createStub(TranslatorInterface::class);
         $translator->method('trans')->willReturnArgument(0);
 
-        return new ResourceDescriber($productRepository, $taxonRepository, $urlGenerator, $translator);
+        // Without a value the default of the constructor applies
+        return null === $maxProductVariants
+            ? new ResourceDescriber($productRepository, $taxonRepository, $urlGenerator, $translator)
+            : new ResourceDescriber($productRepository, $taxonRepository, $urlGenerator, $translator, $maxProductVariants);
     }
 
     private function createProduct(bool $isSimple, int $variantCount): ProductInterface

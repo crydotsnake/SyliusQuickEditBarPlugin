@@ -1,7 +1,17 @@
 import { Controller } from '@hotwired/stimulus';
-import { BAR_HEIGHT, styles } from './quick_edit_bar_styles.js';
+import { styles } from './quick_edit_bar_styles.js';
 
 const RESOURCE_SELECTOR = '[data-s-krull-quick-edit-bar-resource]';
+
+// Remembers per browser whether the bar was collapsed, so it stays out of the way on the next pages
+const COLLAPSED_STORAGE_KEY = 's_krull_sylius_quick_edit_bar.collapsed';
+
+// Distance of the floating bar to the edge of the viewport
+const OFFSET = 12;
+
+// The Symfony web debug toolbar (dev only) is fixed to the bottom with this height
+const SYMFONY_TOOLBAR_SELECTOR = '.sf-toolbar';
+const SYMFONY_TOOLBAR_HEIGHT = 36;
 
 // Tabler icons (MIT), https://tabler.io/icons
 const ICONS = {
@@ -15,12 +25,15 @@ const ICONS = {
     products: ['M12 3l8 4.5l0 9l-8 4.5l-8 -4.5l0 -9l8 -4.5', 'M12 12l8 -4.5', 'M12 12l0 9', 'M12 12l-8 -4.5'],
     link: ['M12 6h-6a2 2 0 0 0 -2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-6', 'M11 13l9 -9', 'M15 4h5v5'],
     chevron: ['M6 9l6 6l6 -6'],
+    hide: ['M18 6l-12 12', 'M6 6l12 12'],
 };
 
 const supportsPopover = () => Object.hasOwn(HTMLElement.prototype, 'popover');
 
 /**
- * Shows a bar with links into the Sylius admin on top of every shop page for logged-in administrators.
+ * Shows a floating bar with links into the Sylius admin on every shop page for logged-in administrators.
+ *
+ * The bar floats above the page instead of pushing it, at the bottom by default, and can be collapsed to a small button.
  *
  * The hint cookie is only set for administrators and contains the path of the bar endpoint,
  * so regular visitors never trigger a request. The endpoint itself is protected by the admin firewall.
@@ -33,8 +46,6 @@ export default class extends Controller {
     #host = null;
 
     #abortController = null;
-
-    #previousMarginTop = '';
 
     async connect() {
         const endpoint = this.#readCookie(this.hintCookieValue);
@@ -78,26 +89,80 @@ export default class extends Controller {
 
         this.#host.remove();
         this.#host = null;
-        document.documentElement.style.marginTop = this.#previousMarginTop;
     }
 
     #render(data) {
         const sheet = new CSSStyleSheet();
         sheet.replaceSync(styles);
 
+        const position = 'top' === data.position ? 'top' : 'bottom';
+        let offset = OFFSET;
+        if ('bottom' === position && document.querySelector(SYMFONY_TOOLBAR_SELECTOR)) {
+            offset += SYMFONY_TOOLBAR_HEIGHT;
+        }
+
         // Attached to <body> instead of the hook position, so transformed theme containers cannot break the fixed position
         this.#host = document.createElement('div');
         this.#host.setAttribute('data-test-quick-edit-bar', '');
-        this.#host.style.cssText = `all: initial; position: fixed; top: 0; right: 0; left: 0; z-index: 2147483000; height: ${BAR_HEIGHT}px;`;
+        this.#host.setAttribute('data-position', position);
+        this.#host.style.cssText = `all: initial; position: fixed; ${position}: ${offset}px; left: ${OFFSET}px; z-index: 2147483000; max-width: calc(100vw - ${2 * OFFSET}px);`;
+
+        const bar = this.#buildBar(data);
+        const show = this.#buildToggle(data.toggle.show, 'administration', 'show');
+        const hide = this.#buildToggle(data.toggle.hide, 'hide', 'hide');
+        bar.append(hide);
+
+        show.addEventListener('click', () => this.#setCollapsed(false, hide));
+        hide.addEventListener('click', () => {
+            // An open dropdown would otherwise stay on top of the page
+            bar.querySelectorAll('.menu').forEach((menu) => menu.matches(':popover-open') && menu.hidePopover());
+            this.#setCollapsed(true, show);
+        });
 
         const shadowRoot = this.#host.attachShadow({ mode: 'open' });
         shadowRoot.adoptedStyleSheets = [sheet];
-        shadowRoot.append(this.#buildBar(data));
+        shadowRoot.append(bar, show);
         document.body.prepend(this.#host);
 
-        // Like the WordPress admin bar, push the page down instead of covering its top
-        this.#previousMarginTop = document.documentElement.style.marginTop;
-        document.documentElement.style.setProperty('margin-top', `${BAR_HEIGHT}px`, 'important');
+        this.#setCollapsed(this.#isStoredCollapsed());
+    }
+
+    #setCollapsed(collapsed, focusTarget = null) {
+        this.#host.toggleAttribute('data-collapsed', collapsed);
+
+        try {
+            if (collapsed) {
+                window.localStorage.setItem(COLLAPSED_STORAGE_KEY, '1');
+            } else {
+                window.localStorage.removeItem(COLLAPSED_STORAGE_KEY);
+            }
+        } catch {
+            // Storage can be unavailable, e.g. in private windows, the bar then just starts expanded again
+        }
+
+        // Keep the keyboard focus on the button that replaces the clicked one
+        focusTarget?.focus();
+    }
+
+    #isStoredCollapsed() {
+        try {
+            return '1' === window.localStorage.getItem(COLLAPSED_STORAGE_KEY);
+        } catch {
+            return false;
+        }
+    }
+
+    #buildToggle(label, icon, action) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = `toggle toggle-${action}`;
+        button.title = label;
+        button.setAttribute('aria-label', label);
+        button.setAttribute('aria-expanded', String('hide' === action));
+        button.setAttribute('data-test-quick-edit-bar-toggle', action);
+        button.append(this.#buildIcon(icon));
+
+        return button;
     }
 
     #buildBar({ label, administration, resource }) {
@@ -186,9 +251,17 @@ export default class extends Controller {
 
         menu.addEventListener('beforetoggle', (event) => {
             if ('open' === event.newState) {
-                const { bottom, left } = button.getBoundingClientRect();
-                menu.style.top = `${bottom + 4}px`;
+                const { top, bottom, left } = button.getBoundingClientRect();
                 menu.style.left = `${left}px`;
+
+                // Open towards the middle of the viewport, a bar at the bottom opens its menus upwards
+                if ('bottom' === this.#host.dataset.position) {
+                    menu.style.top = '';
+                    menu.style.bottom = `${window.innerHeight - top + 4}px`;
+                } else {
+                    menu.style.top = `${bottom + 4}px`;
+                    menu.style.bottom = '';
+                }
             }
         });
         menu.addEventListener('toggle', (event) => {

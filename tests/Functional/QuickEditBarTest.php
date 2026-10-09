@@ -49,6 +49,8 @@ final class QuickEditBarTest extends WebTestCase
         self::assertSame(
             [
                 'label' => 'Quick edit bar',
+                'position' => 'bottom',
+                'toggle' => ['hide' => 'Hide quick edit bar', 'show' => 'Show quick edit bar'],
                 'administration' => ['label' => 'Administration', 'url' => '/admin/'],
                 'resource' => null,
             ],

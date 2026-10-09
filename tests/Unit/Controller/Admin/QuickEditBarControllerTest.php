@@ -24,6 +24,8 @@ final class QuickEditBarControllerTest extends TestCase
         self::assertSame(
             [
                 'label' => 's_krull_sylius_quick_edit_bar.ui.quick_edit_bar',
+                'position' => 'bottom',
+                'toggle' => ['hide' => 's_krull_sylius_quick_edit_bar.ui.hide', 'show' => 's_krull_sylius_quick_edit_bar.ui.show'],
                 'administration' => ['label' => 'sylius.ui.administration', 'url' => '/sylius_admin_dashboard'],
                 'resource' => null,
             ],
@@ -37,6 +39,11 @@ final class QuickEditBarControllerTest extends TestCase
 
         self::assertIsArray($resource);
         self::assertSame('sylius.ui.product', $resource['type'] ?? null);
+    }
+
+    public function testItReturnsTheConfiguredPosition(): void
+    {
+        self::assertSame('top', $this->decode($this->createController('top')())['position'] ?? null);
     }
 
     public function testItIsNeverStoredInAnyCache(): void
@@ -68,7 +75,7 @@ final class QuickEditBarControllerTest extends TestCase
         $this->createController()('product', '999');
     }
 
-    private function createController(): QuickEditBarController
+    private function createController(string $position = 'bottom'): QuickEditBarController
     {
         $product = $this->createStub(ProductInterface::class);
         $product->method('getVariants')->willReturn(new ArrayCollection());
@@ -84,7 +91,7 @@ final class QuickEditBarControllerTest extends TestCase
 
         $describer = new ResourceDescriber($productRepository, $this->createStub(TaxonRepositoryInterface::class), $urlGenerator, $translator);
 
-        return new QuickEditBarController($describer, $urlGenerator, $translator);
+        return new QuickEditBarController($describer, $urlGenerator, $translator, $position);
     }
 
     /** @return array<array-key, mixed> */

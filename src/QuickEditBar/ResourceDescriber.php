@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SKrull\SyliusQuickEditBarPlugin\QuickEditBar;
 
+use SKrull\SyliusQuickEditBarPlugin\DependencyInjection\Configuration;
 use SKrull\SyliusQuickEditBarPlugin\Exception\ResourceNotFoundException;
 use SKrull\SyliusQuickEditBarPlugin\Exception\UnsupportedResourceException;
 use SKrull\SyliusQuickEditBarPlugin\QuickEditBar\Model\Link;
@@ -23,9 +24,6 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 final readonly class ResourceDescriber
 {
-    /** Keeps the variants dropdown usable for products with many variants, the last entry links to the full list */
-    public const int MAX_VARIANTS = 20;
-
     /**
      * @param ProductRepositoryInterface<ProductInterface> $productRepository
      * @param TaxonRepositoryInterface<TaxonInterface> $taxonRepository
@@ -35,6 +33,7 @@ final readonly class ResourceDescriber
         private TaxonRepositoryInterface $taxonRepository,
         private UrlGeneratorInterface $urlGenerator,
         private TranslatorInterface $translator,
+        private int $maxProductVariants = Configuration::DEFAULT_MAX_PRODUCT_VARIANTS,
     ) {
     }
 
@@ -94,7 +93,7 @@ final readonly class ResourceDescriber
         $variants = $product->getVariants();
 
         $links = [];
-        foreach ($variants->slice(0, self::MAX_VARIANTS) as $variant) {
+        foreach ($variants->slice(0, $this->maxProductVariants) as $variant) {
             if (!$variant instanceof ProductVariantInterface) {
                 continue;
             }

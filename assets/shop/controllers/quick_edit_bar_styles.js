@@ -1,5 +1,5 @@
 // Lives inside the shadow root, so neither the shop theme nor this bar can affect each other
-export const BAR_HEIGHT = 40;
+const BAR_HEIGHT = 40;
 
 const FONT = '13px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
 
@@ -8,23 +8,32 @@ export const styles = `
         all: initial;
     }
 
+    /* Collapsed, only the button to show the bar again is visible */
+    :host([data-collapsed]) .bar,
+    :host(:not([data-collapsed])) .toggle-show {
+        display: none;
+    }
+
     .bar {
         box-sizing: border-box;
         display: flex;
         align-items: center;
         gap: 4px;
+        max-width: 100%;
         height: ${BAR_HEIGHT}px;
-        padding: 0 12px;
+        padding: 0 5px;
         overflow-x: auto;
         white-space: nowrap;
+        border-radius: 10px;
         background: #1d2327;
         color: #f0f0f1;
         font: ${FONT};
-        box-shadow: 0 1px 3px rgba(0, 0, 0, .3);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, .3);
     }
 
     a,
-    .group {
+    .group,
+    .toggle {
         flex: none;
         display: inline-flex;
         align-items: center;
@@ -37,7 +46,8 @@ export const styles = `
         transition: background-color .15s ease-in-out;
     }
 
-    .group {
+    .group,
+    .toggle {
         border: 0;
         background: transparent;
         font: inherit;
@@ -48,14 +58,38 @@ export const styles = `
     a:focus-visible,
     .group:hover,
     .group:focus-visible,
-    .group[aria-expanded="true"] {
+    .group[aria-expanded="true"],
+    .toggle-hide:hover,
+    .toggle-hide:focus-visible {
         background: rgba(255, 255, 255, .12);
     }
 
     a:focus-visible,
-    .group:focus-visible {
+    .group:focus-visible,
+    .toggle:focus-visible {
         outline: 2px solid #1abb9c;
         outline-offset: 1px;
+    }
+
+    .toggle-hide {
+        margin-left: auto;
+        padding: 0 8px;
+        color: #c3c4c7;
+    }
+
+    .toggle-show {
+        justify-content: center;
+        width: ${BAR_HEIGHT}px;
+        height: ${BAR_HEIGHT}px;
+        padding: 0;
+        border-radius: 10px;
+        background: #1d2327;
+        color: #f0f0f1;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, .3);
+    }
+
+    .toggle-show:hover {
+        background: #2c3338;
     }
 
     .administration {

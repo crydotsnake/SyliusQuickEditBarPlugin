@@ -1,6 +1,8 @@
 # Sylius Quick Edit Bar Plugin
 
-Adds a bar to the top of the storefront, similar to the WordPress admin bar. It is visible only to visitors who are logged in to the Sylius admin and links straight into the admin: to the dashboard on every page, and to the admin pages of the product or category you are looking at.
+Adds a floating bar to the storefront, similar to the Symfony web debug toolbar. It is visible only to visitors who are logged in to the Sylius admin and links straight into the admin: to the dashboard on every page, and to the admin pages of the product or category you are looking at.
+
+The bar floats above the page at the bottom, so it never covers the shop header with its navigation and cart. The button on its right collapses it to a small button in the corner. This is remembered per browser until the bar is shown again.
 
 ## Requirements
 
@@ -80,7 +82,42 @@ The bar links to the Sylius admin pages of these shop pages:
 | Product page (`sylius_shop.product.show`)                            | Edit, Show, Variants (configurable products) |
 | Category page (`sylius_shop.product.index.content.body.main.header`) | Edit, Products                               |
 
-On every other shop page the bar only shows the link to the dashboard. The variants dropdown lists up to 20 variants and links to the full list.
+On every other shop page the bar only shows the link to the dashboard. The variants dropdown lists up to 20 variants (see [Configuration](#configuration)) and links to the full list.
+
+## Configuration
+
+All options with their defaults, e.g. in `config/packages/s_krull_sylius_quick_edit_bar.yaml`:
+
+```yaml
+s_krull_sylius_quick_edit_bar:
+    # Edge of the viewport the bar floats at: bottom or top
+    position: bottom
+
+    product:
+        # Number of variants listed in the variants dropdown (at least 1), the last entry always links to the full list
+        max_variants: 20
+```
+
+Like any bundle configuration, the value can differ per environment or come from an environment variable:
+
+```yaml
+s_krull_sylius_quick_edit_bar:
+    product:
+        max_variants: '%env(int:QUICK_EDIT_BAR_MAX_VARIANTS)%'
+
+when@dev:
+    s_krull_sylius_quick_edit_bar:
+        product:
+            max_variants: 100
+```
+
+To check the configuration that is actually used:
+
+```bash
+bin/console debug:config s_krull_sylius_quick_edit_bar
+```
+
+To inspect the response of the bar, open the endpoint directly while logged in to the admin, e.g. `/admin/quick-edit-bar?resource=product&id=1`.
 
 ## Tests
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SKrull\SyliusQuickEditBarPlugin\Controller\Admin;
 
+use SKrull\SyliusQuickEditBarPlugin\DependencyInjection\Configuration;
 use SKrull\SyliusQuickEditBarPlugin\Exception\ResourceNotFoundException;
 use SKrull\SyliusQuickEditBarPlugin\Exception\UnsupportedResourceException;
 use SKrull\SyliusQuickEditBarPlugin\QuickEditBar\ResourceDescriber;
@@ -34,6 +35,7 @@ final readonly class QuickEditBarController
         private ResourceDescriber $resourceDescriber,
         private UrlGeneratorInterface $urlGenerator,
         private TranslatorInterface $translator,
+        private string $position = Configuration::POSITION_BOTTOM,
     ) {
     }
 
@@ -46,6 +48,11 @@ final readonly class QuickEditBarController
     ): JsonResponse {
         $response = new JsonResponse([
             'label' => $this->translator->trans('s_krull_sylius_quick_edit_bar.ui.quick_edit_bar'),
+            'position' => $this->position,
+            'toggle' => [
+                'hide' => $this->translator->trans('s_krull_sylius_quick_edit_bar.ui.hide'),
+                'show' => $this->translator->trans('s_krull_sylius_quick_edit_bar.ui.show'),
+            ],
             'administration' => [
                 'label' => $this->translator->trans('sylius.ui.administration'),
                 'url' => $this->urlGenerator->generate('sylius_admin_dashboard'),
