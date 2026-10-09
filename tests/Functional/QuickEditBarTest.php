@@ -7,6 +7,7 @@ namespace Tests\SKrull\SyliusQuickEditBarPlugin\Functional;
 use Doctrine\Common\DataFixtures\Purger\ORMPurger;
 use Doctrine\ORM\EntityManagerInterface;
 use SKrull\SyliusQuickEditBarPlugin\EventListener\AdminHintCookieListener;
+use Sylius\Bundle\CoreBundle\Security\ImpersonationVoter;
 use Sylius\Component\Core\Model\AdminUserInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\CustomerInterface;
@@ -162,6 +163,10 @@ final class QuickEditBarTest extends WebTestCase
 
     public function testItReportsTheImpersonatedCustomer(): void
     {
+        if (!class_exists(ImpersonationVoter::class)) {
+            self::markTestSkipped('Sylius marks impersonations since 2.1 only.');
+        }
+
         $customer = $this->createShopUser()->getCustomer();
         self::assertInstanceOf(CustomerInterface::class, $customer);
         $this->client->loginUser($this->createAdminUser(), 'admin');

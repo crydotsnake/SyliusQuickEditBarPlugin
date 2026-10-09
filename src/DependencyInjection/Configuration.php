@@ -15,6 +15,7 @@ final class Configuration implements ConfigurationInterface
 
     public const int DEFAULT_MAX_PRODUCT_VARIANTS = 20;
 
+    /** @return TreeBuilder<'array'> */
     public function getConfigTreeBuilder(): TreeBuilder
     {
         $treeBuilder = new TreeBuilder('s_krull_sylius_quick_edit_bar');

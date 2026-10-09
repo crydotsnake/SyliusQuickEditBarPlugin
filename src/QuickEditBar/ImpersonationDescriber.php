@@ -4,15 +4,14 @@ declare(strict_types=1);
 
 namespace SKrull\SyliusQuickEditBarPlugin\QuickEditBar;
 
-use Sylius\Bundle\CoreBundle\Security\ImpersonationVoter;
 use Sylius\Component\Core\Model\ShopUserInterface;
 use Sylius\Component\User\Repository\UserRepositoryInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Exception\SessionNotFoundException;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpFoundation\Session\SessionInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
-use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -20,6 +19,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  *
  * Admin and shop share the session. Sylius marks an impersonation in it and removes the mark on shop logout,
  * so customers who log in themselves are never reported. Nothing about the customer is added to the shop HTML.
+ * Sylius 2.0 sets no mark yet, so impersonations are reported since Sylius 2.1 only.
  *
  * @phpstan-type ImpersonationDescription array{label: string, url: string}
  */
@@ -27,7 +27,6 @@ final readonly class ImpersonationDescriber
 {
     /** @param UserRepositoryInterface<ShopUserInterface> $shopUserRepository */
     public function __construct(
-        private AuthorizationCheckerInterface $authorizationChecker,
         private RequestStack $requestStack,
         private UserRepositoryInterface $shopUserRepository,
         private UrlGeneratorInterface $urlGenerator,
@@ -40,11 +39,18 @@ final readonly class ImpersonationDescriber
     /** @return ImpersonationDescription|null */
     public function describe(): ?array
     {
-        if (!$this->authorizationChecker->isGranted(ImpersonationVoter::IS_IMPERSONATOR_SYLIUS, $this->shopFirewallContextName)) {
+        try {
+            $session = $this->requestStack->getSession();
+        } catch (SessionNotFoundException) {
             return null;
         }
 
-        $customer = $this->findImpersonatedUser()?->getCustomer();
+        // Written by the UserImpersonator of Sylius and checked by its ImpersonationVoter, which does not exist in Sylius 2.0
+        if (true !== $session->get('_security_impersonate_sylius_' . $this->shopFirewallContextName)) {
+            return null;
+        }
+
+        $customer = $this->findImpersonatedUser($session)?->getCustomer();
         if (null === $customer) {
             return null;
         }
@@ -55,15 +61,10 @@ final readonly class ImpersonationDescriber
         ];
     }
 
-    private function findImpersonatedUser(): ?ShopUserInterface
+    private function findImpersonatedUser(SessionInterface $session): ?ShopUserInterface
     {
-        try {
-            // Symfony keeps the token of each firewall context in the session, like the UserImpersonator of Sylius writes it
-            $serializedToken = $this->requestStack->getSession()->get('_security_' . $this->shopFirewallContextName);
-        } catch (SessionNotFoundException) {
-            return null;
-        }
-
+        // Symfony keeps the token of each firewall context in the session, like the UserImpersonator of Sylius writes it
+        $serializedToken = $session->get('_security_' . $this->shopFirewallContextName);
         if (!\is_string($serializedToken)) {
             return null;
         }

@@ -16,7 +16,6 @@ use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
-use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class ImpersonationDescriberTest extends TestCase
@@ -51,12 +50,12 @@ final class ImpersonationDescriberTest extends TestCase
 
     private function createDescriber(bool $impersonating, ?ShopUserInterface $sessionUser, ?ShopUserInterface $storedUser): ImpersonationDescriber
     {
-        $authorizationChecker = $this->createStub(AuthorizationCheckerInterface::class);
-        $authorizationChecker->method('isGranted')->willReturn($impersonating);
-
+        // Written like the UserImpersonator of Sylius does
         $session = new Session(new MockArraySessionStorage());
+        if ($impersonating) {
+            $session->set('_security_impersonate_sylius_shop', true);
+        }
         if (null !== $sessionUser) {
-            // Written like the UserImpersonator of Sylius does
             $session->set('_security_shop', serialize(new UsernamePasswordToken($sessionUser, 'shop', $sessionUser->getRoles())));
         }
 
@@ -76,7 +75,7 @@ final class ImpersonationDescriberTest extends TestCase
         $translator = $this->createStub(TranslatorInterface::class);
         $translator->method('trans')->willReturnCallback(static fn (string $id, array $parameters = []): string => strtr($id . ' %name%', $parameters));
 
-        return new ImpersonationDescriber($authorizationChecker, $requestStack, $shopUserRepository, $urlGenerator, $translator, 'shop');
+        return new ImpersonationDescriber($requestStack, $shopUserRepository, $urlGenerator, $translator, 'shop');
     }
 
     private function createShopUser(): ShopUserInterface
