@@ -1,6 +1,6 @@
 # Sylius Quick Edit Bar Plugin
 
-Adds a floating bar to the storefront, similar to the Symfony web debug toolbar. It is visible only to visitors who are logged in to the Sylius admin and links straight into the admin: to the dashboard on every page, and to the admin pages of the product or category you are looking at.
+Adds a floating bar to the storefront, similar to the Symfony web debug toolbar. It is visible only to visitors who are logged in to the Sylius admin and links straight into the admin: to the dashboard and the current channel on every page, and to the admin pages of the product or category you are looking at. While you impersonate a customer, the bar shows who you are logged in as.
 
 The bar floats above the page at the bottom, so it never covers the shop header with its navigation and cart. The button on its right collapses it to a small button in the corner. This is remembered per browser until the bar is shown again.
 
@@ -10,9 +10,17 @@ The bar floats above the page at the bottom, so it never covers the shop header 
 
 ![Sylius QuickEditBarPlugin Product Demo](docs/sylius_quick_edit_bar_plugin_product_demo.png)
 
-### Edit a category and list its products
+### Edit a taxon and list its products
 
 ![Sylius QuickEditBarPlugin Taxon Demo](docs/sylius_quick_edit_bar_plugin_taxon_demo.png)
+
+### See and edit the current channel
+
+![Sylius QuickEditBarPlugin Channel Demo](docs/sylius_quick_edit_bar_plugin_channel_demo.png)
+
+### See which customer you are impersonating
+
+![Sylius QuickEditBarPlugin Impersonation Demo](docs/sylius_quick_edit_bar_plugin_impersonation_demo.png)
 
 ## Requirements
 
@@ -25,8 +33,8 @@ The bar floats above the page at the bottom, so it never covers the shop header 
 Sylius uses separate `admin` and `shop` firewalls, so a shop request doesn't know about the admin login. The plugin doesn't touch the security configuration. Instead, it works like this:
 
 1. **Hint cookie:** while an administrator browses the admin, a non-HttpOnly cookie `s_krull_sylius_quick_edit_bar` is set. It holds only the path of the plugin's admin endpoint and is removed on admin logout.
-2. **Storefront:** a hookable in `sylius_shop.base.header` adds an empty Stimulus controller to every shop page. Pages about a resource add a hidden marker: product pages and category pages. The shop HTML is the same for every visitor, so it stays cacheable and doesn't reveal the admin path. No shop template is overridden.
-3. **Endpoint:** if the hint cookie is present, the Stimulus controller calls `GET /{admin}/quick-edit-bar?resource=product&id={id}`. The admin firewall protects this route (it also requires `ROLE_ADMINISTRATION_ACCESS`), and it returns the links for the bar. The bar appears only if the response is `200`.
+2. **Storefront:** a hookable in `sylius_shop.base.header` adds an empty Stimulus controller with the code of the current channel to every shop page. Pages about a resource add a hidden marker: product pages and category pages. The shop HTML is the same for every visitor of a channel, so it stays cacheable and doesn't reveal the admin path. No shop template is overridden.
+3. **Endpoint:** if the hint cookie is present, the Stimulus controller calls `GET /{admin}/quick-edit-bar?channel={code}&resource=product&id={id}`. The admin firewall protects this route (it also requires `ROLE_ADMINISTRATION_ACCESS`), and it returns the links for the bar. The bar appears only if the response is `200`.
 
 Regular customers never send the request. Administrators whose session has expired get a redirect, so the bar stays hidden.
 
@@ -92,7 +100,13 @@ The bar links to the Sylius admin pages of these shop pages:
 | Product page (`sylius_shop.product.show`)                            | Edit, Show, Variants (configurable products) |
 | Category page (`sylius_shop.product.index.content.body.main.header`) | Edit, Products                               |
 
-On every other shop page the bar only shows the link to the dashboard. The variants dropdown lists up to 20 variants (see [Configuration](#configuration)) and links to the full list.
+The variants dropdown lists up to 20 variants (see [Configuration](#configuration)) and links to the full list.
+
+On every shop page the bar also shows:
+
+- **Dashboard:** link to the admin dashboard.
+- **Channel:** name of the current channel, linking to its edit page.
+- **Impersonation:** while you impersonate a customer from the admin (the *Impersonate* button on the customer page), the bar shows *Impersonating customer@example.com* in yellow, linking to the customer. It is detected from the session that admin and shop share, so nothing about the customer is added to the shop HTML, and customers who log in themselves are never shown. It disappears when you log out in the shop.
 
 ## Configuration
 

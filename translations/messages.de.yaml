@@ -3,3 +3,4 @@ s_krull_sylius_quick_edit_bar:
         quick_edit_bar: Schnellbearbeitungsleiste
         hide: Schnellbearbeitungsleiste ausblenden
         show: Schnellbearbeitungsleiste einblenden
+        impersonating: Angemeldet als %name%

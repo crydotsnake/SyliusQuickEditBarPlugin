@@ -92,6 +92,22 @@ export const styles = `
         background: #2c3338;
     }
 
+    .channel {
+        color: #c3c4c7;
+    }
+
+    /* Stands out, so nobody forgets they are acting as a customer */
+    .impersonation {
+        background: #dba617;
+        color: #1d2327;
+        font-weight: 600;
+    }
+
+    .impersonation:hover,
+    .impersonation:focus-visible {
+        background: #f0c33c;
+    }
+
     .administration {
         font-weight: 600;
     }

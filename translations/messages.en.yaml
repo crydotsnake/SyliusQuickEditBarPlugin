@@ -3,3 +3,4 @@ s_krull_sylius_quick_edit_bar:
         quick_edit_bar: Quick edit bar
         hide: Hide quick edit bar
         show: Show quick edit bar
+        impersonating: Impersonating %name%

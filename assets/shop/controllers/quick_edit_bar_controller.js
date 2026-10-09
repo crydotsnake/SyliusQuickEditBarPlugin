@@ -26,6 +26,8 @@ const ICONS = {
     link: ['M12 6h-6a2 2 0 0 0 -2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-6', 'M11 13l9 -9', 'M15 4h5v5'],
     chevron: ['M6 9l6 6l6 -6'],
     hide: ['M18 6l-12 12', 'M6 6l12 12'],
+    channel: ['M3 21l18 0', 'M3 7v1a3 3 0 0 0 6 0v-1m0 1a3 3 0 0 0 6 0v-1m0 1a3 3 0 0 0 6 0v-1h-18l2 -4h14l2 4', 'M5 21l0 -10.35', 'M19 21l0 -10.35', 'M9 21v-4a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v4'],
+    impersonation: ['M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0', 'M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2'],
 };
 
 const supportsPopover = () => Object.hasOwn(HTMLElement.prototype, 'popover');
@@ -41,6 +43,7 @@ const supportsPopover = () => Object.hasOwn(HTMLElement.prototype, 'popover');
 export default class extends Controller {
     static values = {
         hintCookie: String,
+        channel: String,
     };
 
     #host = null;
@@ -54,6 +57,9 @@ export default class extends Controller {
         }
 
         const url = new URL(endpoint, window.location.origin);
+        if (this.channelValue) {
+            url.searchParams.set('channel', this.channelValue);
+        }
         const resource = document.querySelector(RESOURCE_SELECTOR);
         if (resource) {
             url.searchParams.set('resource', resource.dataset.sKrullQuickEditBarResource);
@@ -165,12 +171,24 @@ export default class extends Controller {
         return button;
     }
 
-    #buildBar({ label, administration, resource }) {
+    #buildBar({ label, administration, channel, impersonation, resource }) {
         const bar = document.createElement('nav');
         bar.className = 'bar';
         bar.setAttribute('aria-label', label);
 
         bar.append(this.#buildLink(administration, 'administration', 'administration'));
+
+        if (channel) {
+            // Only the name is shown, the type stays in the tooltip and the accessible name
+            const link = this.#buildLink({ label: channel.name, url: channel.url }, 'channel', 'channel');
+            link.title = `${channel.label}: ${channel.name}`;
+            link.setAttribute('aria-label', link.title);
+            bar.append(link);
+        }
+
+        if (impersonation) {
+            bar.append(this.#buildLink(impersonation, 'impersonation', 'impersonation'));
+        }
 
         if (resource) {
             const separator = document.createElement('span');

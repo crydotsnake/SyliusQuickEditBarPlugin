@@ -7,14 +7,21 @@ namespace Tests\SKrull\SyliusQuickEditBarPlugin\Unit\Controller\Admin;
 use Doctrine\Common\Collections\ArrayCollection;
 use PHPUnit\Framework\TestCase;
 use SKrull\SyliusQuickEditBarPlugin\Controller\Admin\QuickEditBarController;
+use SKrull\SyliusQuickEditBarPlugin\QuickEditBar\ChannelDescriber;
+use SKrull\SyliusQuickEditBarPlugin\QuickEditBar\ImpersonationDescriber;
 use SKrull\SyliusQuickEditBarPlugin\QuickEditBar\ResourceDescriber;
+use Sylius\Component\Channel\Model\ChannelInterface;
+use Sylius\Component\Channel\Repository\ChannelRepositoryInterface;
 use Sylius\Component\Core\Model\ProductInterface;
 use Sylius\Component\Core\Repository\ProductRepositoryInterface;
 use Sylius\Component\Taxonomy\Repository\TaxonRepositoryInterface;
+use Sylius\Component\User\Repository\UserRepositoryInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class QuickEditBarControllerTest extends TestCase
@@ -27,6 +34,8 @@ final class QuickEditBarControllerTest extends TestCase
                 'position' => 'bottom',
                 'toggle' => ['hide' => 's_krull_sylius_quick_edit_bar.ui.hide', 'show' => 's_krull_sylius_quick_edit_bar.ui.show'],
                 'administration' => ['label' => 'sylius.ui.administration', 'url' => '/sylius_admin_dashboard'],
+                'channel' => null,
+                'impersonation' => null,
                 'resource' => null,
             ],
             $this->decode($this->createController()()),
@@ -39,6 +48,22 @@ final class QuickEditBarControllerTest extends TestCase
 
         self::assertIsArray($resource);
         self::assertSame('sylius.ui.product', $resource['type'] ?? null);
+    }
+
+    public function testItAddsTheChannelOfTheShopPage(): void
+    {
+        self::assertSame(
+            ['label' => 'sylius.ui.channel', 'name' => 'Fashion Web Store', 'url' => '/sylius_admin_channel_update'],
+            $this->decode($this->createController()(channel: 'FASHION_WEB'))['channel'] ?? null,
+        );
+    }
+
+    public function testItIgnoresAnUnknownChannel(): void
+    {
+        $response = $this->decode($this->createController()(channel: 'UNKNOWN'));
+
+        self::assertArrayHasKey('channel', $response);
+        self::assertNull($response['channel']);
     }
 
     public function testItReturnsTheConfiguredPosition(): void
@@ -89,9 +114,24 @@ final class QuickEditBarControllerTest extends TestCase
         $translator = $this->createStub(TranslatorInterface::class);
         $translator->method('trans')->willReturnArgument(0);
 
-        $describer = new ResourceDescriber($productRepository, $this->createStub(TaxonRepositoryInterface::class), $urlGenerator, $translator);
+        $channel = $this->createStub(ChannelInterface::class);
+        $channel->method('getName')->willReturn('Fashion Web Store');
 
-        return new QuickEditBarController($describer, $urlGenerator, $translator, $position);
+        $channelRepository = $this->createStub(ChannelRepositoryInterface::class);
+        $channelRepository->method('findOneByCode')->willReturnCallback(static fn (string $code): ?ChannelInterface => 'FASHION_WEB' === $code ? $channel : null);
+
+        // Not impersonating
+        $authorizationChecker = $this->createStub(AuthorizationCheckerInterface::class);
+        $authorizationChecker->method('isGranted')->willReturn(false);
+
+        return new QuickEditBarController(
+            new ResourceDescriber($productRepository, $this->createStub(TaxonRepositoryInterface::class), $urlGenerator, $translator),
+            new ChannelDescriber($channelRepository, $urlGenerator, $translator),
+            new ImpersonationDescriber($authorizationChecker, new RequestStack(), $this->createStub(UserRepositoryInterface::class), $urlGenerator, $translator, 'shop'),
+            $urlGenerator,
+            $translator,
+            $position,
+        );
     }
 
     /** @return array<array-key, mixed> */

@@ -8,11 +8,14 @@ use Doctrine\Common\DataFixtures\Purger\ORMPurger;
 use Doctrine\ORM\EntityManagerInterface;
 use SKrull\SyliusQuickEditBarPlugin\EventListener\AdminHintCookieListener;
 use Sylius\Component\Core\Model\AdminUserInterface;
+use Sylius\Component\Core\Model\ChannelInterface;
 use Sylius\Component\Core\Model\CustomerInterface;
 use Sylius\Component\Core\Model\ProductInterface;
 use Sylius\Component\Core\Model\ProductVariantInterface;
 use Sylius\Component\Core\Model\ShopUserInterface;
 use Sylius\Component\Core\Model\TaxonInterface;
+use Sylius\Component\Currency\Model\CurrencyInterface;
+use Sylius\Component\Locale\Model\LocaleInterface;
 use Sylius\Resource\Factory\FactoryInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -52,6 +55,8 @@ final class QuickEditBarTest extends WebTestCase
                 'position' => 'bottom',
                 'toggle' => ['hide' => 'Hide quick edit bar', 'show' => 'Show quick edit bar'],
                 'administration' => ['label' => 'Administration', 'url' => '/admin/'],
+                'channel' => null,
+                'impersonation' => null,
                 'resource' => null,
             ],
             $this->getJsonResponse(),
@@ -140,6 +145,58 @@ final class QuickEditBarTest extends WebTestCase
             ],
             $this->getJsonResponse()['resource'] ?? null,
         );
+    }
+
+    public function testItReturnsTheChannelOfTheShopPage(): void
+    {
+        $channel = $this->createChannel();
+        $this->client->loginUser($this->createAdminUser(), 'admin');
+
+        $this->client->request('GET', self::ENDPOINT, ['channel' => 'QUICK_EDIT_WEB']);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame(
+            ['label' => 'Channel', 'name' => 'Quick edit web store', 'url' => $this->generateUrl('sylius_admin_channel_update', ['id' => $channel->getId()])],
+            $this->getJsonResponse()['channel'] ?? null,
+        );
+    }
+
+    public function testItIgnoresAnUnknownChannel(): void
+    {
+        $this->client->loginUser($this->createAdminUser(), 'admin');
+
+        $this->client->request('GET', self::ENDPOINT, ['channel' => 'UNKNOWN']);
+
+        self::assertResponseIsSuccessful();
+        self::assertNull($this->getJsonResponse()['channel'] ?? null);
+    }
+
+    public function testItReportsTheImpersonatedCustomer(): void
+    {
+        $customer = $this->createShopUser()->getCustomer();
+        self::assertInstanceOf(CustomerInterface::class, $customer);
+        $this->client->loginUser($this->createAdminUser(), 'admin');
+
+        // The impersonate button on the customer page of the admin
+        $this->client->request('GET', $this->generateUrl('sylius_admin_impersonate_user', ['username' => 'customer@example.com']));
+        $this->client->request('GET', self::ENDPOINT);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame(
+            ['label' => 'Impersonating customer@example.com', 'url' => $this->generateUrl('sylius_admin_customer_show', ['id' => $customer->getId()])],
+            $this->getJsonResponse()['impersonation'] ?? null,
+        );
+    }
+
+    public function testItDoesNotReportACustomerWhoLoggedInThemselves(): void
+    {
+        $this->client->loginUser($this->createShopUser(), 'shop');
+        $this->client->loginUser($this->createAdminUser(), 'admin');
+
+        $this->client->request('GET', self::ENDPOINT);
+
+        self::assertResponseIsSuccessful();
+        self::assertNull($this->getJsonResponse()['impersonation'] ?? null);
     }
 
     public function testItReturnsBadRequestWithoutId(): void
@@ -282,6 +339,35 @@ final class QuickEditBarTest extends WebTestCase
         return $taxon;
     }
 
+    private function createChannel(): ChannelInterface
+    {
+        /** @var FactoryInterface<ChannelInterface> $factory */
+        $factory = self::getContainer()->get('sylius.factory.channel');
+        $channel = $factory->createNew();
+        $channel->setCode('QUICK_EDIT_WEB');
+        $channel->setName('Quick edit web store');
+
+        /** @var FactoryInterface<LocaleInterface> $localeFactory */
+        $localeFactory = self::getContainer()->get('sylius.factory.locale');
+        $locale = $localeFactory->createNew();
+        $locale->setCode('en_US');
+        $channel->setDefaultLocale($locale);
+
+        /** @var FactoryInterface<CurrencyInterface> $currencyFactory */
+        $currencyFactory = self::getContainer()->get('sylius.factory.currency');
+        $currency = $currencyFactory->createNew();
+        $currency->setCode('USD');
+        $channel->setBaseCurrency($currency);
+
+        $this->entityManager->persist($locale);
+        $this->entityManager->persist($currency);
+
+        $this->entityManager->persist($channel);
+        $this->entityManager->flush();
+
+        return $channel;
+    }
+
     private function createAdminUser(): AdminUserInterface
     {
         /** @var FactoryInterface<AdminUserInterface> $factory */
@@ -309,6 +395,7 @@ final class QuickEditBarTest extends WebTestCase
         $shopUserFactory = self::getContainer()->get('sylius.factory.shop_user');
         $shopUser = $shopUserFactory->createNew();
         $shopUser->setCustomer($customer);
+        $shopUser->setUsername('customer@example.com');
         $shopUser->setEnabled(true);
 
         $this->entityManager->persist($shopUser);

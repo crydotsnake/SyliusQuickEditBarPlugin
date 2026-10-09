@@ -4,6 +4,8 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use SKrull\SyliusQuickEditBarPlugin\Controller\Admin\QuickEditBarController;
 use SKrull\SyliusQuickEditBarPlugin\EventListener\AdminHintCookieListener;
+use SKrull\SyliusQuickEditBarPlugin\QuickEditBar\ChannelDescriber;
+use SKrull\SyliusQuickEditBarPlugin\QuickEditBar\ImpersonationDescriber;
 use SKrull\SyliusQuickEditBarPlugin\QuickEditBar\ResourceDescriber;
 
 return static function (ContainerConfigurator $container) {
@@ -26,4 +28,10 @@ return static function (ContainerConfigurator $container) {
         ->arg('$productRepository', service('sylius.repository.product'))
         ->arg('$taxonRepository', service('sylius.repository.taxon'))
         ->arg('$maxProductVariants', abstract_arg('maximum number of listed product variants'));
+
+    $services->set(ChannelDescriber::class)
+        ->arg('$channelRepository', service('sylius.repository.channel'));
+
+    $services->set(ImpersonationDescriber::class)
+        ->arg('$shopUserRepository', service('sylius.repository.shop_user'));
 };

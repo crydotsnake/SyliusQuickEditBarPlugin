@@ -1,7 +1,8 @@
-{# Same markup for every visitor, so the page stays cacheable and does not reveal the admin path #}
+{# Same markup for every visitor of a channel, so the page stays cacheable and does not reveal the admin path #}
 <div
     {{ stimulus_controller('@skrull/sylius-quick-edit-bar-plugin/quick-edit-bar', {
         hintCookie: constant('SKrull\\SyliusQuickEditBarPlugin\\EventListener\\AdminHintCookieListener::COOKIE_NAME'),
+        channel: sylius.channel.code,
     }) }}
     hidden
 ></div>

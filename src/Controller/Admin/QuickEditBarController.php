@@ -7,6 +7,8 @@ namespace SKrull\SyliusQuickEditBarPlugin\Controller\Admin;
 use SKrull\SyliusQuickEditBarPlugin\DependencyInjection\Configuration;
 use SKrull\SyliusQuickEditBarPlugin\Exception\ResourceNotFoundException;
 use SKrull\SyliusQuickEditBarPlugin\Exception\UnsupportedResourceException;
+use SKrull\SyliusQuickEditBarPlugin\QuickEditBar\ChannelDescriber;
+use SKrull\SyliusQuickEditBarPlugin\QuickEditBar\ImpersonationDescriber;
 use SKrull\SyliusQuickEditBarPlugin\QuickEditBar\ResourceDescriber;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpKernel\Attribute\AsController;
@@ -33,6 +35,8 @@ final readonly class QuickEditBarController
 
     public function __construct(
         private ResourceDescriber $resourceDescriber,
+        private ChannelDescriber $channelDescriber,
+        private ImpersonationDescriber $impersonationDescriber,
         private UrlGeneratorInterface $urlGenerator,
         private TranslatorInterface $translator,
         private string $position = Configuration::POSITION_BOTTOM,
@@ -45,6 +49,8 @@ final readonly class QuickEditBarController
         ?string $resource = null,
         #[MapQueryParameter]
         ?string $id = null,
+        #[MapQueryParameter]
+        ?string $channel = null,
     ): JsonResponse {
         $response = new JsonResponse([
             'label' => $this->translator->trans('s_krull_sylius_quick_edit_bar.ui.quick_edit_bar'),
@@ -57,6 +63,8 @@ final readonly class QuickEditBarController
                 'label' => $this->translator->trans('sylius.ui.administration'),
                 'url' => $this->urlGenerator->generate('sylius_admin_dashboard'),
             ],
+            'channel' => null === $channel || '' === $channel ? null : $this->channelDescriber->describe($channel),
+            'impersonation' => $this->impersonationDescriber->describe(),
             'resource' => null === $resource ? null : $this->describeResource($resource, $id),
         ]);
         $response->setPrivate();
