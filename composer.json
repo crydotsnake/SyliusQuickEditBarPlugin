@@ -9,7 +9,7 @@
         "test-appication"
     ],
     "require": {
-        "php": "^8.3",
+        "php": "^8.4",
         "sylius/sylius": "^2.0",
         "symfony/ux-icons": "^2.36 || ^3.0"
     },
