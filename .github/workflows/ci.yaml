@@ -1,0 +1,53 @@
+name: ci
+on:
+  pull_request:
+  push:
+    branches:
+      - "main"
+
+jobs:
+  run:
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      matrix:
+        operating-system: ['ubuntu-latest']
+        dependencies: ['lowest', 'highest']
+        symfony: ['^7.4']
+        php-versions: ['8.4']
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Configure PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-versions }}
+          tools: composer:v2, flex
+          coverage: xdebug
+          extensions: bcmath, gd
+
+      - name: Install Composer dependencies
+        uses: "ramsey/composer-install@v3"
+        env:
+          SYMFONY_REQUIRE: "${{ matrix.symfony }}"
+        with:
+          dependency-versions: "${{ matrix.dependencies }}"
+
+      - name: Validate composer
+        run: composer validate --strict
+
+      - name: Validate package licenses
+        run: composer check-license
+
+      - name: Check code style
+        run: composer cs-check
+
+      - name: Check Twig style
+        run: composer cs-twig
+
+      - name: Static Code Analysis
+        run: composer analyze
+
+      - name: Unittests
+        run: composer test

@@ -1,0 +1,21 @@
+sylius_twig_hooks:
+    hooks:
+        # Rendered on every shop page, the bar itself is only built for administrators
+        'sylius_shop.base.header':
+            s_krull_quick_edit_bar:
+                template: '@SKrullSyliusQuickEditBarPlugin/shop/quick_edit_bar.html.twig'
+                priority: 1000
+
+        # The markers below tell the bar which resource the current page is about
+
+        'sylius_shop.product.show':
+            s_krull_quick_edit_bar_resource:
+                template: '@SKrullSyliusQuickEditBarPlugin/shop/product/show/quick_edit_bar_resource.html.twig'
+                priority: -1000
+
+        # Category page, the taxon is resolved from the slug by Sylius and passed into this hook
+        'sylius_shop.product.index.content.body.main.header':
+            s_krull_quick_edit_bar_resource:
+                template: '@SKrullSyliusQuickEditBarPlugin/shop/product/index/quick_edit_bar_resource.html.twig'
+                priority: -1000
+

@@ -1,0 +1,5 @@
+{% set taxon = hookable_metadata.context.taxon|default(null) %}
+
+{% if taxon is not null %}
+    <div hidden data-s-krull-quick-edit-bar-resource="taxon" data-s-krull-quick-edit-bar-resource-id="{{ taxon.id }}"></div>
+{% endif %}

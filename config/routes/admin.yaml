@@ -1,0 +1,5 @@
+s_krull_sylius_quick_edit_bar_admin_controllers:
+    resource:
+        path: ../../src/Controller/Admin/
+        namespace: SKrull\SyliusQuickEditBarPlugin\Controller\Admin
+    type: attribute

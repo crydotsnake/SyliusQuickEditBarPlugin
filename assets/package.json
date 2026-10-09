@@ -1,0 +1,20 @@
+{
+    "name": "@skrull/sylius-quick-edit-bar-plugin",
+    "description": "Stimulus controllers of the SKrull Sylius Quick Edit Bar plugin",
+    "version": "1.0.0",
+    "license": "MIT",
+    "private": true,
+    "symfony": {
+        "controllers": {
+            "quick-edit-bar": {
+                "main": "shop/controllers/quick_edit_bar_controller.js",
+                "webpackMode": "lazy",
+                "fetch": "lazy",
+                "enabled": true
+            }
+        }
+    },
+    "peerDependencies": {
+        "@hotwired/stimulus": "^3.0.0"
+    }
+}

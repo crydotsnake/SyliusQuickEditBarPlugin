@@ -1,0 +1,13 @@
+#!/bin/bash
+
+## Description: Bootstrap the test application
+
+composer install
+# Run the Sylius migrations (the plugin has no entities of its own)
+vendor/bin/console doctrine:migration:migrate -n
+# Install default fixtures
+vendor/bin/console sylius:fixtures:load -n
+# Build and install frontend dependencies
+(cd vendor/sylius/test-application && yarn install)
+(cd vendor/sylius/test-application && yarn run build:prod)
+vendor/bin/console assets:install

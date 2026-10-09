@@ -1,0 +1,11 @@
+{
+  "controllers": {
+    "@skrull/sylius-quick-edit-bar-plugin": {
+      "quick-edit-bar": {
+        "enabled": true,
+        "fetch": "lazy"
+      }
+    }
+  },
+  "entrypoints": []
+}
