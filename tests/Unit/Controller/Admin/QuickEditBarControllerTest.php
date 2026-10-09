@@ -21,7 +21,6 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
-use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Twig\Environment;
 
@@ -119,10 +118,6 @@ final class QuickEditBarControllerTest extends TestCase
         $channelRepository = $this->createStub(ChannelRepositoryInterface::class);
         $channelRepository->method('findOneByCode')->willReturnCallback(static fn (string $code): ?ChannelInterface => 'FASHION_WEB' === $code ? $channel : null);
 
-        // Not impersonating
-        $authorizationChecker = $this->createStub(AuthorizationCheckerInterface::class);
-        $authorizationChecker->method('isGranted')->willReturn(false);
-
         // Exposes the template and its context instead of rendering it
         $twig = $this->createStub(Environment::class);
         $twig->method('render')->willReturnCallback(static fn (string $template, array $context): string => (string) json_encode(['template' => $template] + $context));
@@ -130,7 +125,8 @@ final class QuickEditBarControllerTest extends TestCase
         return new QuickEditBarController(
             new ResourceDescriber($productRepository, $this->createStub(TaxonRepositoryInterface::class), $urlGenerator, $translator),
             new ChannelDescriber($channelRepository, $urlGenerator, $translator),
-            new ImpersonationDescriber($authorizationChecker, new RequestStack(), $this->createStub(UserRepositoryInterface::class), $urlGenerator, $translator, 'shop'),
+            // Not impersonating, there is no session
+            new ImpersonationDescriber(new RequestStack(), $this->createStub(UserRepositoryInterface::class), $urlGenerator, $translator, 'shop'),
             $twig,
             $position,
         );
