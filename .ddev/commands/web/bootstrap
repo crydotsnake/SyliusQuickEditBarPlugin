@@ -2,6 +2,7 @@
 
 ## Description: Bootstrap the test application
 
+ddev start
 composer install
 # Run the Sylius migrations (the plugin has no entities of its own)
 vendor/bin/console doctrine:migration:migrate -n
