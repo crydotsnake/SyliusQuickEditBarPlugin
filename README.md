@@ -27,7 +27,7 @@ As an alternative you can also move the bar to specific snap points. Rather with
 ## Requirements
 
 - PHP 8.4 or higher
-- Sylius 2.x on Symfony 7.4
+- Sylius 2.x on Symfony 7.4, and Symfony 8 for Sylius >= 2.3
 - A storefront built with Webpack Encore and Stimulus (the Sylius 2 default)
 
 ## How it works
