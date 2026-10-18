@@ -1,6 +1,5 @@
 imports:
     - { resource: "@SKrullSyliusQuickEditBarPlugin/config/config.yaml" }
-    - { resource: "services_test.php" }
 
 twig:
     paths:

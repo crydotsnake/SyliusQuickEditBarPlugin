@@ -4,3 +4,7 @@ s_krull_sylius_quick_edit_bar_admin:
 
 s_krull_sylius_quick_edit_bar_shop:
     resource: "@SKrullSyliusQuickEditBarPlugin/config/routes/shop.yaml"
+
+# Like the Symfony recipe, must not register the plugin route a second time without the admin prefix
+controllers:
+    resource: routing.controllers
