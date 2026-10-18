@@ -9,7 +9,6 @@
 
 /.phpunit.result.cache
 /.twig-cs-fixer.cache
-/behat.yml
 /phpunit.xml
 /compose.override.yml
 .phpunit.result.cache

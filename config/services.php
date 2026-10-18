@@ -17,8 +17,12 @@ return static function (ContainerConfigurator $container) {
             ->autoconfigure();
 
     // The position is set by the extension
+    // Not autoconfigured, so it is not tagged with "routing.controller": the "routing.controllers" import of the
+    // Symfony recipe would otherwise register the route a second time without the admin prefix and firewall
     $services->set(QuickEditBarController::class)
         ->public()
+        ->autoconfigure(false)
+        ->tag('controller.service_arguments')
         ->arg('$position', abstract_arg('position of the bar'));
 
     $services->set(AdminHintCookieListener::class);
