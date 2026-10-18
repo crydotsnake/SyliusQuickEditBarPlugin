@@ -6,7 +6,7 @@ The bar floats above the page at the bottom, so it never covers the shop header 
 
 As an alternative you can also move the bar to specific snap points. Rather with dragging, and move, or with clicking the icon.
 
-## Demo
+## Features
 
 ### Edit a product and list its variants
 
