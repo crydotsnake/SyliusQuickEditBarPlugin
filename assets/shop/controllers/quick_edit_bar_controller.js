@@ -28,12 +28,12 @@ const SYMFONY_TOOLBAR_HEIGHT = 36;
  * The bar floats above the page instead of pushing it, at the bottom by default, and can be collapsed to a small button.
  * Its handle and the collapsed button can be dragged to any corner of the viewport, so the bar can make way for chat buttons, cookie banners and the like.
  *
- * The hint cookie is only set for administrators and contains the path of the bar endpoint,
+ * The shop page adds this controller only for administrators, with the path of the bar endpoint,
  * so regular visitors never trigger a request. The endpoint itself is protected by the admin firewall.
  */
 export default class extends Controller {
     static values = {
-        hintCookie: String,
+        endpoint: String,
         channel: String,
     };
 
@@ -44,12 +44,11 @@ export default class extends Controller {
     #abortController = null;
 
     async connect() {
-        const endpoint = this.#readCookie(this.hintCookieValue);
-        if (!endpoint) {
+        if (!this.endpointValue) {
             return;
         }
 
-        const url = new URL(endpoint, window.location.origin);
+        const url = new URL(this.endpointValue, window.location.origin);
         if (this.channelValue) {
             url.searchParams.set('channel', this.channelValue);
         }
@@ -273,13 +272,6 @@ export default class extends Controller {
                 }
             }
         });
-    }
-
-    #readCookie(name) {
-        const prefix = `${name}=`;
-        const cookie = document.cookie.split('; ').find((entry) => entry.startsWith(prefix));
-
-        return cookie ? decodeURIComponent(cookie.substring(prefix.length)) : null;
     }
 }
 

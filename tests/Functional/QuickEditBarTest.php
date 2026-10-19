@@ -6,7 +6,6 @@ namespace Tests\SKrull\SyliusQuickEditBarPlugin\Functional;
 
 use Doctrine\Common\DataFixtures\Purger\ORMPurger;
 use Doctrine\ORM\EntityManagerInterface;
-use SKrull\SyliusQuickEditBarPlugin\EventListener\AdminHintCookieListener;
 use Sylius\Bundle\CoreBundle\Security\ImpersonationVoter;
 use Sylius\Component\Core\Model\AdminUserInterface;
 use Sylius\Component\Core\Model\ChannelInterface;
@@ -21,12 +20,17 @@ use Sylius\Resource\Factory\FactoryInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
-use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final class QuickEditBarTest extends WebTestCase
 {
     private const string ENDPOINT = '/admin/quick-edit-bar';
+
+    private const string SHOP_PAGE = '/en_US/';
+
+    private const string BAR_SELECTOR = '[data-controller="skrull--sylius-quick-edit-bar-plugin--quick-edit-bar"]';
+
+    private const string BAR_VALUE_PREFIX = 'data-skrull--sylius-quick-edit-bar-plugin--quick-edit-bar-';
 
     private KernelBrowser $client;
 
@@ -236,35 +240,55 @@ final class QuickEditBarTest extends WebTestCase
         self::assertResponseStatusCodeSame(400);
     }
 
-    public function testItSetsTheHintCookieForAnAdministrator(): void
+    public function testItRendersTheBarControllerOnShopPagesForAnAdministrator(): void
     {
+        $this->createChannel();
         $this->client->loginUser($this->createAdminUser(), 'admin');
 
+        // Any admin page flags the session
         $this->client->request('GET', self::ENDPOINT);
+        $crawler = $this->client->request('GET', self::SHOP_PAGE);
 
-        $cookie = $this->findResponseCookie(AdminHintCookieListener::COOKIE_NAME);
-        self::assertNotNull($cookie);
-        self::assertSame(self::ENDPOINT, $cookie->getValue());
-        self::assertSame('/', $cookie->getPath());
-        self::assertFalse($cookie->isHttpOnly());
+        self::assertResponseIsSuccessful();
+        $bar = $crawler->filter(self::BAR_SELECTOR);
+        self::assertCount(1, $bar);
+        self::assertSame(self::ENDPOINT, $bar->attr(self::BAR_VALUE_PREFIX . 'endpoint-value'));
+        self::assertSame('QUICK_EDIT_WEB', $bar->attr(self::BAR_VALUE_PREFIX . 'channel-value'));
     }
 
-    public function testItDoesNotSetTheHintCookieForAnonymousVisitors(): void
+    public function testItRendersNothingOnShopPagesForAnonymousVisitors(): void
     {
-        $this->client->request('GET', self::ENDPOINT);
+        $this->createChannel();
 
-        self::assertNull($this->findResponseCookie(AdminHintCookieListener::COOKIE_NAME));
+        $crawler = $this->client->request('GET', self::SHOP_PAGE);
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter(self::BAR_SELECTOR));
+        self::assertNull($this->client->getCookieJar()->get($this->client->getRequest()->getSession()->getName()), 'No session cookie is set');
     }
 
-    public function testItClearsTheHintCookieOnAdminLogout(): void
+    public function testItRendersNothingOnShopPagesForShopUsers(): void
     {
+        $this->createChannel();
+        $this->client->loginUser($this->createShopUser(), 'shop');
+
+        $crawler = $this->client->request('GET', self::SHOP_PAGE);
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter(self::BAR_SELECTOR));
+    }
+
+    public function testItRemovesTheBarControllerFromShopPagesOnAdminLogout(): void
+    {
+        $this->createChannel();
         $this->client->loginUser($this->createAdminUser(), 'admin');
+        $this->client->request('GET', self::ENDPOINT);
 
         $this->client->request('GET', '/admin/logout');
+        $crawler = $this->client->request('GET', self::SHOP_PAGE);
 
-        $cookie = $this->findResponseCookie(AdminHintCookieListener::COOKIE_NAME);
-        self::assertNotNull($cookie);
-        self::assertTrue($cookie->isCleared());
+        self::assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter(self::BAR_SELECTOR));
     }
 
     /** @param array<string, mixed> $parameters */
@@ -349,12 +373,14 @@ final class QuickEditBarTest extends WebTestCase
         $locale = $localeFactory->createNew();
         $locale->setCode('en_US');
         $channel->setDefaultLocale($locale);
+        $channel->addLocale($locale);
 
         /** @var FactoryInterface<CurrencyInterface> $currencyFactory */
         $currencyFactory = self::getContainer()->get('sylius.factory.currency');
         $currency = $currencyFactory->createNew();
         $currency->setCode('USD');
         $channel->setBaseCurrency($currency);
+        $channel->addCurrency($currency);
 
         $this->entityManager->persist($locale);
         $this->entityManager->persist($currency);
@@ -399,16 +425,5 @@ final class QuickEditBarTest extends WebTestCase
         $this->entityManager->flush();
 
         return $shopUser;
-    }
-
-    private function findResponseCookie(string $name): ?Cookie
-    {
-        foreach ($this->client->getResponse()->headers->getCookies() as $cookie) {
-            if ($cookie->getName() === $name) {
-                return $cookie;
-            }
-        }
-
-        return null;
     }
 }

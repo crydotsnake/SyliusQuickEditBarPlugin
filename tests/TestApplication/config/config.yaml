@@ -21,3 +21,8 @@ doctrine:
 when@dev:
     maker:
         root_namespace: 'SKrull\SyliusQuickEditBarPlugin'
+
+# CI builds the test application without assets, the shop pages of the functional tests render without them
+when@test:
+    webpack_encore:
+        strict_mode: false
