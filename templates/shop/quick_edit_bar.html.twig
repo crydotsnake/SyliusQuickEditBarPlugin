@@ -1,8 +1,10 @@
-{# Same markup for every visitor of a channel, so the page stays cacheable and does not reveal the admin path #}
-<div
-    {{ stimulus_controller('@skrull/sylius-quick-edit-bar-plugin/quick-edit-bar', {
-        hintCookie: constant('SKrull\\SyliusQuickEditBarPlugin\\EventListener\\AdminHintCookieListener::COOKIE_NAME'),
-        channel: sylius.channel.code,
-    }) }}
-    hidden
-></div>
+{# Only browsers whose session belongs to an administrator get the controller, visitors without a session never start one #}
+{% if s_krull_sylius_quick_edit_bar_has_admin_session() %}
+    <div
+        {{ stimulus_controller('@skrull/sylius-quick-edit-bar-plugin/quick-edit-bar', {
+            endpoint: path('s_krull_sylius_quick_edit_bar_admin_bar'),
+            channel: sylius.channel.code,
+        }) }}
+        hidden
+    ></div>
+{% endif %}

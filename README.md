@@ -34,11 +34,11 @@ As an alternative you can also move the bar to specific snap points. Rather with
 
 Sylius uses separate `admin` and `shop` firewalls, so a shop request doesn't know about the admin login. The plugin doesn't touch the security configuration. Instead, it works like this:
 
-1. **Hint cookie:** while an administrator browses the admin, a non-HttpOnly cookie `s_krull_sylius_quick_edit_bar` is set. It holds only the path of the plugin's admin endpoint and is removed on admin logout.
-2. **Storefront:** a hookable in `sylius_shop.base.header` adds an empty Stimulus controller with the code of the current channel to every shop page. Pages about a resource add a hidden marker: product pages and category pages. The shop HTML is the same for every visitor of a channel, so it stays cacheable and doesn't reveal the admin path. No shop template is overridden.
-3. **Endpoint:** if the hint cookie is present, the Stimulus controller calls `GET /{admin}/quick-edit-bar?channel={code}&resource=product&id={id}`. The admin firewall protects this route (it also requires `ROLE_ADMINISTRATION_ACCESS`), and it returns the links for the bar. The bar appears only if the response is `200`.
+1. **Session flag:** while an administrator browses the admin, the plugin flags the session, which admin and shop share. The flag is removed on admin logout.
+2. **Storefront:** a hookable in `sylius_shop.base.header` adds an empty Stimulus controller with the endpoint path and the code of the current channel, but only if the session is flagged. The plugin never starts a session for visitors without one, and their pages don't reveal the admin path. Pages about a resource add a hidden marker: product pages and category pages. No shop template is overridden.
+3. **Endpoint:** the Stimulus controller calls `GET /{admin}/quick-edit-bar?channel={code}&resource=product&id={id}`. The admin firewall protects this route (it also requires `ROLE_ADMINISTRATION_ACCESS`), and it returns the links for the bar. The bar appears only if the response is `200`.
 
-Regular customers never send the request. Administrators whose session has expired get a redirect, so the bar stays hidden.
+Regular customers never get the controller and never send the request. If the admin login is no longer valid, the endpoint redirects to the login page, so the bar stays hidden.
 
 ### Limitations
 

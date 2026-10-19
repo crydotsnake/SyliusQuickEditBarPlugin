@@ -3,10 +3,11 @@
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use SKrull\SyliusQuickEditBarPlugin\Controller\Admin\QuickEditBarController;
-use SKrull\SyliusQuickEditBarPlugin\EventListener\AdminHintCookieListener;
+use SKrull\SyliusQuickEditBarPlugin\EventListener\AdminSessionListener;
 use SKrull\SyliusQuickEditBarPlugin\QuickEditBar\ChannelDescriber;
 use SKrull\SyliusQuickEditBarPlugin\QuickEditBar\ImpersonationDescriber;
 use SKrull\SyliusQuickEditBarPlugin\QuickEditBar\ResourceDescriber;
+use SKrull\SyliusQuickEditBarPlugin\Twig\QuickEditBarExtension;
 
 return static function (ContainerConfigurator $container) {
     $container->import('services/**');
@@ -25,7 +26,9 @@ return static function (ContainerConfigurator $container) {
         ->tag('controller.service_arguments')
         ->arg('$position', abstract_arg('position of the bar'));
 
-    $services->set(AdminHintCookieListener::class);
+    $services->set(AdminSessionListener::class);
+
+    $services->set(QuickEditBarExtension::class);
 
     // The maximum number of variants is set by the extension
     $services->set(ResourceDescriber::class)
