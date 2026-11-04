@@ -21,7 +21,7 @@
         "symfony/ux-icons": "^2.36 || ^3.0"
     },
     "require-dev": {
-        "bitexpert/phpstan-sylius": "^0.3.0",
+        "bitexpert/phpstan-sylius": "^0.4.0",
         "ergebnis/composer-normalize": "^2.52",
         "madewithlove/license-checker": "^3.1",
         "nyholm/psr7": "^1.8",
